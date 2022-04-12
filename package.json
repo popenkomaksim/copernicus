@@ -5,6 +5,8 @@
   "description": "",
   "main": "main.js",
   "scripts": {
+    "build-mac": "electron-packager ./  --platform=darwin --overwrite --icon ./public/icons/mac/icon.icns",
+    "build-win": "electron-packager ./ --platform=win32 --overwrite --icon ./public/icons/png/256x256.png",
     "start": "electron .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
