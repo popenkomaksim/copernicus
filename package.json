@@ -1,0 +1,26 @@
+{
+  "name": "copernicus",
+  "version": "1.0.0",
+  "productName": "Карти",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/popenkomaksim/copernicus.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/popenkomaksim/copernicus/issues"
+  },
+  "homepage": "https://github.com/popenkomaksim/copernicus#readme",
+  "devDependencies": {
+    "electron": "^17.4.0",
+    "electron-packager": "^15.4.0"
+  }
+}

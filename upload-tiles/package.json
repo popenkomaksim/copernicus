@@ -1,0 +1,22 @@
+{
+  "name": "upload-tiles",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "compress": "node compress.js",
+    "upload": "node uploadResults.js",
+    "start": "node index.js",
+    "scan": "node check.js",
+    "calculateChunks": "node calculateChunks.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.1096.0",
+    "lodash.times": "^4.3.2",
+    "lodash": "^4.17.15",
+    "minimist": "^1.2.5",
+    "glob": "^7.2.0"
+  }
+}
