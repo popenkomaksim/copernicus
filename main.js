@@ -15,7 +15,7 @@ const loadMainWindow = () => {
 
   mainWindow.loadFile(path.join(__dirname, "index.html"));
 
-  const port = 3000;
+  const port = 38571;
   webServer.listen(port, () => {
     console.log(`Example app listening on port ${port}`);
   });

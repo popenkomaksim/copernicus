@@ -3,7 +3,7 @@ const config = {
     {
       projection: "EPSG:3857",
       source: new ol.source.OSM({
-        url: "http://localhost:3000/GS/{z}/{x}/{y}",
+        url: "http://localhost:38571/GS/{z}/{x}/{y}",
         // url: 'https://khms0.googleapis.com/kh?v=917&hl=en-US&x={x}&y={y}&z={z}',
         crossOrigin: null,
       }),
@@ -13,7 +13,7 @@ const config = {
     {
       projection: "EPSG:3857",
       source: new ol.source.OSM({
-        url: "http://localhost:3000/COSM/{z}/{x}/{y}",
+        url: "http://localhost:38571/COSM/{z}/{x}/{y}",
         // url: "https://b.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png",
         crossOrigin: null,
       }),
