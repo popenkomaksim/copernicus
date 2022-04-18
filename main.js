@@ -1,10 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
-const util = require("util");
-const fs = require("fs");
 const getTile = require("./getTile");
-
-const writeFile = util.promisify(fs.writeFile);
 
 const loadMainWindow = async () => {
   const mainWindow = new BrowserWindow({
@@ -18,18 +14,9 @@ const loadMainWindow = async () => {
 
   ipcMain.handle("get-tile", getTile);
 
-  mainWindow.webContents.openDevTools();
-
-  // const port = "34567";
-  // await writeFile("port.js", `window.port=${port};`);
+  // mainWindow.webContents.openDevTools();
 
   mainWindow.loadFile(path.join(__dirname, "index.html"));
-
-  // global.port = port;
-
-  // webServer.listen(port, () => {
-  //   console.log(`Example app listening on port ${port}`);
-  // });
 };
 
 app.on("ready", loadMainWindow);
