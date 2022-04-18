@@ -18,8 +18,8 @@ function tileCoordsScaleDown(x, y, z, nz) {
 
 const getSqliteFileName = ({ provider, z, x, y }) => {
   let result = `/../maps/${provider}/`;
-  if (true) {
-    // if (z <= 10) {
+  // if (true) {
+  if (z <= 10) {
     result += "5_9.sqlite";
   } else {
     const needed = tileCoordsScaleDown(z, x, y, 10);
@@ -58,8 +58,8 @@ const getTile = (channel, listener) => {
     db.on("trace", (event) => console.log(event));
 
     db.all(
-      // `SELECT z, x, y, data, ext FROM "tiles" WHERE ("z" = "${z}") AND ("x" = "${x}") AND ("y" = "${y}");`,
-      `SELECT z, x, y, data, ext FROM "tiles");`,
+      `SELECT z, x, y, data, ext FROM "tiles" WHERE ("z" = "${z}") AND ("x" = "${x}") AND ("y" = "${y}");`,
+      // `SELECT z, x, y, data, ext FROM "tiles");`,
       async function (err, rows) {
         let found = false;
         console.log(rows);
