@@ -1,24 +1,35 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
-const webServer = require("./web-server");
+const util = require("util");
+const fs = require("fs");
+const getTile = require("./getTile");
 
-const loadMainWindow = () => {
+const writeFile = util.promisify(fs.writeFile);
+
+const loadMainWindow = async () => {
   const mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
       nodeIntegration: true,
+      preload: path.join(__dirname, "preload.js"),
     },
   });
 
+  ipcMain.handle("get-tile", getTile);
+
   mainWindow.webContents.openDevTools();
+
+  // const port = "34567";
+  // await writeFile("port.js", `window.port=${port};`);
 
   mainWindow.loadFile(path.join(__dirname, "index.html"));
 
-  const port = 38571;
-  webServer.listen(port, () => {
-    console.log(`Example app listening on port ${port}`);
-  });
+  // global.port = port;
+
+  // webServer.listen(port, () => {
+  //   console.log(`Example app listening on port ${port}`);
+  // });
 };
 
 app.on("ready", loadMainWindow);
