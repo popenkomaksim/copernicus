@@ -53,38 +53,34 @@ const getTile = (channel, listener) => {
           console.error(err);
           resolve(null);
         }
+        db.on("trace", (event) => {
+          console.trace(event);
+          console.error(event);
+        });
+
+        db.all(
+          `SELECT z, x, y, data, ext FROM "tiles" WHERE z = ${z} AND x = ${x} AND y = ${y};`,
+          async function (err, rows) {
+            let found = false;
+            console.log(rows);
+            if (rows) {
+              rows.forEach(function (row) {
+                found = true;
+                resolve(
+                  "data:image/png;base64, " +
+                    Buffer.from(row.data).toString("base64")
+                );
+              });
+            }
+            if (!found) {
+              resolve(null);
+            }
+            db.close();
+            console.log("==================");
+          }
+        );
       }
     );
-
-    db.on("trace", (event) => {
-      console.trace(event);
-      console.error(event);
-    });
-
-    db.all(
-      `SELECT z, x, y, data, ext FROM "tiles" WHERE z = ${z} AND x = ${x} AND y = ${y};`,
-      // `SELECT z, x, y, data, ext FROM "tiles");`,
-      async function (err, rows) {
-        let found = false;
-        console.log(rows);
-        if (rows) {
-          rows.forEach(function (row) {
-            found = true;
-            // res.send(Buffer.from(row.data));
-            resolve(
-              "data:image/png;base64, " +
-                Buffer.from(row.data).toString("base64")
-            );
-          });
-        }
-        if (!found) {
-          resolve(null);
-        }
-      }
-    );
-
-    // db.close();
-    console.log("==================");
   });
 };
 module.exports = getTile;
