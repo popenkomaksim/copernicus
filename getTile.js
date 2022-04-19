@@ -3,6 +3,7 @@ const path = require("path");
 const fs = require("fs");
 const util = require("util");
 const sqlite3 = require("sqlite3").verbose();
+const logger = require("electron-log");
 
 const readFile = util.promisify(fs.readFile);
 
@@ -19,7 +20,8 @@ function tileCoordsScaleDown({ x, y, z, nz }) {
 
 const getSqliteFileName = ({ provider, z, x, y }) => {
   console.log({ provider, z, x, y });
-  let result = `/../maps/${provider}/`;
+  logger.info({ provider, z, x, y });
+  let result = `${global.COPERNICUS_MAPS_PATH}/${provider}/`;
 
   if (z - 0 < 10) {
     result += "0_9.sqlite";
@@ -29,11 +31,12 @@ const getSqliteFileName = ({ provider, z, x, y }) => {
     result += `10_${scaledTo10.x}_${scaledTo10.y}.sqlite`;
   }
   console.log(path.join(__dirname, result));
-  return path.join(__dirname, result);
+  return path.join(result);
 };
 
 const getTile = (channel, listener) => {
   console.log("==================");
+  logger.info("-=============");
   const { provider, z, x, y } = listener || {};
   const dbPath = getSqliteFileName({ provider, z, x, y });
   return new Promise(async (resolve, reject) => {
@@ -43,11 +46,14 @@ const getTile = (channel, listener) => {
       async (err) => {
         if (err) {
           console.error(dbPath);
+          logger.info(dbPath);
           console.trace(err);
+          logger.info(err);
           resolve(null);
         }
         db.on("trace", (event) => {
           console.trace(event);
+          logger.info(event);
           console.error(event);
         });
 
@@ -56,6 +62,7 @@ const getTile = (channel, listener) => {
           async function (err, rows) {
             let found = false;
             console.log(Object.keys(rows));
+            logger.info(Object.keys(rows));
             if (rows) {
               rows.forEach(function (row) {
                 found = true;
@@ -70,6 +77,7 @@ const getTile = (channel, listener) => {
             }
             db.close();
             console.log("==================");
+            logger.info("==================");
           }
         );
       }
