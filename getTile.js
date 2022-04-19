@@ -1,3 +1,4 @@
+const electron = require("electron");
 const path = require("path");
 const fs = require("fs");
 const util = require("util");
@@ -19,13 +20,11 @@ function tileCoordsScaleDown({ x, y, z, nz }) {
 const getSqliteFileName = ({ provider, z, x, y }) => {
   console.log({ provider, z, x, y });
   let result = `/../maps/${provider}/`;
-  // if (true) {
-  debugger;
 
-  if ((z - 0) < 10) {
+  if (z - 0 < 10) {
     result += "0_9.sqlite";
   } else {
-    const scaledTo10 = tileCoordsScaleDown({ z, x, y, nz:10 });
+    const scaledTo10 = tileCoordsScaleDown({ z, x, y, nz: 10 });
     console.log({ scaledTo10 });
     result += `10_${scaledTo10.x}_${scaledTo10.y}.sqlite`;
   }
@@ -33,24 +32,18 @@ const getSqliteFileName = ({ provider, z, x, y }) => {
   return path.join(__dirname, result);
 };
 
-function blobToBase64(blob) {
-  return new Promise((resolve, _) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result);
-    reader.readAsDataURL(blob);
-  });
-}
 const getTile = (channel, listener) => {
   console.log("==================");
   const { provider, z, x, y } = listener || {};
+  const dbPath = getSqliteFileName({ provider, z, x, y });
   return new Promise(async (resolve, reject) => {
     const db = new sqlite3.Database(
-      getSqliteFileName({ provider, z, x, y }),
+      dbPath,
       sqlite3.OPEN_READONLY,
       async (err) => {
         if (err) {
+          console.error(dbPath);
           console.trace(err);
-          console.error(err);
           resolve(null);
         }
         db.on("trace", (event) => {
@@ -62,7 +55,7 @@ const getTile = (channel, listener) => {
           `SELECT z, x, y, data, ext FROM "tiles" WHERE z = ${z} AND x = ${x} AND y = ${y};`,
           async function (err, rows) {
             let found = false;
-            console.log(rows);
+            console.log(Object.keys(rows));
             if (rows) {
               rows.forEach(function (row) {
                 found = true;
