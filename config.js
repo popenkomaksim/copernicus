@@ -4,6 +4,8 @@ const emptyGif =
 const config = {
   layers: [
     {
+      local: true,
+      id: "OSM-LOCAL",
       projection: "EPSG:3857",
       source: new ol.source.XYZ({
         tileLoadFunction: async (imageTile, link) => {
@@ -26,10 +28,12 @@ const config = {
         },
         url: `OSM/{z}/{x}/{y}`,
       }),
-      displayName: "OSM-LOCAL",
+      displayName: "OSM",
       visible: true,
     },
     {
+      local: true,
+      id: "COSM-LOCAL",
       projection: "EPSG:3857",
       source: new ol.source.XYZ({
         tileLoadFunction: async (imageTile, link) => {
@@ -47,10 +51,12 @@ const config = {
         },
         url: `COSM/{z}/{x}/{y}`,
       }),
-      displayName: "COSM-LOCAL",
+      displayName: "COSM",
       visible: false,
     },
     {
+      local: true,
+      id: "GS-LOCAL",
       projection: "EPSG:3857",
       source: new ol.source.XYZ({
         tileLoadFunction: async (imageTile, link) => {
@@ -68,10 +74,12 @@ const config = {
         },
         url: `GS/{z}/{x}/{y}`,
       }),
-      displayName: "GS-LOCAL",
+      displayName: "GOOGLE",
       visible: false,
     },
     {
+      local: true,
+      id: "HERE-LOCAL",
       projection: "EPSG:3857",
       source: new ol.source.XYZ({
         tileLoadFunction: async (imageTile, link) => {
@@ -89,25 +97,7 @@ const config = {
         },
         url: `HERE/{z}/{x}/{y}`,
       }),
-      displayName: "HERE-LOCAL",
-      visible: false,
-    },
-    {
-      projection: "EPSG:3857",
-      source: new ol.source.OSM({
-        url: "https://khms0.googleapis.com/kh?v=917&hl=en-US&x={x}&y={y}&z={z}",
-        crossOrigin: null,
-      }),
-      displayName: "GS-ONLINE",
-      visible: false,
-    },
-    {
-      projection: "EPSG:3857",
-      source: new ol.source.OSM({
-        url: "https://b.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png",
-        crossOrigin: null,
-      }),
-      displayName: "COSM-ONLINE",
+      displayName: "HERE",
       visible: false,
     },
     {
@@ -116,7 +106,25 @@ const config = {
         url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
         crossOrigin: null,
       }),
-      displayName: "OSM-ONLINE",
+      displayName: "OSM",
+      visible: false,
+    },
+    {
+      projection: "EPSG:3857",
+      source: new ol.source.OSM({
+        url: "https://b.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png",
+        crossOrigin: null,
+      }),
+      displayName: "COSM",
+      visible: false,
+    },
+    {
+      projection: "EPSG:3857",
+      source: new ol.source.OSM({
+        url: "https://khms0.googleapis.com/kh?v=917&hl=en-US&x={x}&y={y}&z={z}",
+        crossOrigin: null,
+      }),
+      displayName: "GOOGLE",
       visible: false,
     },
     {
@@ -125,7 +133,7 @@ const config = {
         url: "https://3.aerial.maps.ls.hereapi.com/maptile/2.1/maptile/newest/satellite.day/{z}/{x}/{y}/256/png8?apiKey=t_kKKAHgEZ-SCa-v08N8xCchEK_wxxp7dFAmEOpi9hs",
         crossOrigin: null,
       }),
-      displayName: "HERE-ONLINE",
+      displayName: "HERE",
       visible: false,
     },
   ],
@@ -148,5 +156,5 @@ const config = {
     },
   ],
   center: [30.54, 50.45],
-  zoom: 10,
+  zoom: 9,
 };

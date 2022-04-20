@@ -2,10 +2,8 @@ const electron = require("electron");
 const path = require("path");
 const fs = require("fs");
 const util = require("util");
-const sqlite3 = require("sqlite3").verbose();
+const sqlite3 = require("sqlite3");
 const logger = require("electron-log");
-
-const readFile = util.promisify(fs.readFile);
 
 function tileCoordsScaleDown({ x, y, z, nz }) {
   if (nz > z) {
@@ -35,8 +33,6 @@ const getSqliteFileName = ({ provider, z, x, y }) => {
 };
 
 const getTile = (channel, listener) => {
-  console.log("==================");
-  logger.info("-=============");
   const { provider, z, x, y } = listener || {};
   const dbPath = getSqliteFileName({ provider, z, x, y });
   return new Promise(async (resolve, reject) => {
@@ -51,11 +47,11 @@ const getTile = (channel, listener) => {
           logger.info(err);
           resolve(null);
         }
-        db.on("trace", (event) => {
-          console.trace(event);
-          logger.info(event);
-          console.error(event);
-        });
+        // db.on("trace", (event) => {
+        //   console.trace(event);
+        //   logger.info(event);
+        //   console.error(event);
+        // });
 
         db.all(
           `SELECT z, x, y, data, ext FROM "tiles" WHERE z = ${z} AND x = ${x} AND y = ${y};`,
@@ -76,8 +72,6 @@ const getTile = (channel, listener) => {
               resolve(null);
             }
             db.close();
-            console.log("==================");
-            logger.info("==================");
           }
         );
       }

@@ -94,6 +94,8 @@
     border-radius: 10px;
     opacity: 0.8;
     cursor: pointer;
+    display: flex;
+    justify-content: center;
 }
 
 .m-yellow {
@@ -142,4 +144,24 @@
     float: right;
     color: blue;
     margin-left: 10px;
+}
+
+.marker .title {
+    color: #000;
+    text-shadow: -1px -1px 0 #FFF, 1px -1px 0 #FFF, -1px 1px 0 #FFF, 1px 1px 0 #FFF;
+    position: absolute;
+    top: -16pt;
+}
+
+#change-layer.only-web .change-layer.layer-local{
+    display: none;
+}
+#change-layer.only-web .change-layer.layer-web{
+    display: block;
+}
+#change-layer.only-local .change-layer.layer-local{
+    display: block;
+}
+#change-layer.only-local .change-layer.layer-web{
+    display: none;
 }

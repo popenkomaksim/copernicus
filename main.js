@@ -6,10 +6,8 @@ const getTile = require("./getTile");
 const logger = require("electron-log");
 
 const findCopernicusMapsFolderPath = (current) => {
-  logger.info(current);
   const dirPath = path.join(current, "/", global.COPERNICUS_MAPS_DIRNAME);
   if (fs.existsSync(dirPath) && fs.lstatSync(dirPath).isDirectory()) {
-    logger.info("FOUND");
     logger.info(dirPath);
     return dirPath;
   } else if (current.length) {
@@ -24,7 +22,7 @@ global.COPERNICUS_MAPS_PATH = findCopernicusMapsFolderPath(__dirname);
 
 app.setPath(
   "userData",
-  path.join(global.COPERNICUS_MAPS_PATH, "../preferences/")
+  path.join(global.COPERNICUS_MAPS_PATH, "../copernicus-preferences/")
 );
 
 
@@ -38,27 +36,10 @@ const loadMainWindow = async () => {
     },
   });
 
-
   ipcMain.handle("get-tile", getTile);
 
+  //  electron.dialog.showErrorBox("Title", path.dirname(require("electron").app.getPath("exe")));
   // mainWindow.webContents.openDevTools();
-  try {
-    //  let result = `/../maps/OSM/`;
-
-    //  let files = "";
-    //  fs.readdirSync(path.join(__dirname, result)).forEach((file) => {
-    //    files += file + "          /n";
-    //  });
-    //  console.log(files);
-
-    //  electron.dialog.showErrorBox("Title", __dirname);
-    //  electron.dialog.showErrorBox("Title", path.dirname(require("electron").app.getPath("exe")));
-    } catch (err) {
-      console.log(err)
-      logger.info(err);
-    }
-
-  mainWindow.webContents.openDevTools();
 
   mainWindow.loadFile(path.join(__dirname, "index.html"));
 };

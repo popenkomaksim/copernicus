@@ -1,11 +1,25 @@
-$(function() {
-  proj4.defs("EPSG:28405","+proj=tmerc +lat_0=0 +lon_0=27 +k=1 +x_0=5500000 +y_0=0 +ellps=krass +towgs84=23.57,-140.95,-79.8,0,0.35,0.79,-0.22vv +units=m +no_defs");
-  proj4.defs("EPSG:28406","+proj=tmerc +lat_0=0 +lon_0=33 +k=1 +x_0=6500000 +y_0=0 +ellps=krass +towgs84=23.57,-140.95,-79.8,0,0.35,0.79,-0.22 +units=m +no_defs");
-  proj4.defs("EPSG:28407","+proj=tmerc +lat_0=0 +lon_0=39 +k=1 +x_0=7500000 +y_0=0 +ellps=krass +towgs84=23.57,-140.95,-79.8,0,0.35,0.79,-0.22 +units=m +no_defs");
+$(function () {
+  proj4.defs(
+    "EPSG:28405",
+    "+proj=tmerc +lat_0=0 +lon_0=27 +k=1 +x_0=5500000 +y_0=0 +ellps=krass +towgs84=23.57,-140.95,-79.8,0,0.35,0.79,-0.22vv +units=m +no_defs"
+  );
+  proj4.defs(
+    "EPSG:28406",
+    "+proj=tmerc +lat_0=0 +lon_0=33 +k=1 +x_0=6500000 +y_0=0 +ellps=krass +towgs84=23.57,-140.95,-79.8,0,0.35,0.79,-0.22 +units=m +no_defs"
+  );
+  proj4.defs(
+    "EPSG:28407",
+    "+proj=tmerc +lat_0=0 +lon_0=39 +k=1 +x_0=7500000 +y_0=0 +ellps=krass +towgs84=23.57,-140.95,-79.8,0,0.35,0.79,-0.22 +units=m +no_defs"
+  );
 
   class MapFront {
+    LOCAL_STORAGE_KEY = "maps-position";
     constructor(config) {
-      this.layers = config.layers.map(layer => new ol.layer.Tile(layer));
+      this.layers = config.layers.map((layer) =>
+        layer instanceof ol.layer.Tile || layer instanceof ol.layer.VectorTile
+          ? layer
+          : new ol.layer.Tile(layer)
+      );
       this.center = config.center;
       this.defaultZoom = config.zoom;
 
@@ -15,133 +29,132 @@ $(function() {
     init() {
       let zoom = this.defaultZoom;
       let center = this.center;
-      let activeLayer = '';
-      if (window.location.hash !== '') {
-        const hash = window.location.hash.replace('#map=', '');
-        const parts = hash.split('/');
-        if (parts.length === 4) {
-          activeLayer = parts[0];
-          zoom = parseFloat(parts[1]);
-          center = [parseFloat(parts[2]), parseFloat(parts[3])];
-        }
+      let activeLayer = "";
+      const loadedState = localStorage.getItem(this.LOCAL_STORAGE_KEY);
+      if (loadedState) {
+        const state = JSON.parse(loadedState);
+        zoom = state.zoom;
+        center = state.center;
+        activeLayer = state.activeLayer;
       }
-      if (this.layers.filter(l=>l.getVisible()).shift().A.displayName !== activeLayer) {
-        for(let i = 0; i < this.layers.length; i++){
-          this.layers[i].setVisible(this.layers[i].A.displayName === activeLayer);
+      if (
+        activeLayer &&
+        this.layers
+          .filter((l) => l.getVisible())
+          .shift()
+          .get("id") !== activeLayer
+      ) {
+        for (let i = 0; i < this.layers.length; i++) {
+          this.layers[i].setVisible(this.layers[i].get("id") === activeLayer);
         }
       }
       const map = new ol.Map({
-        target: 'map',
-        interactions: ol.interaction.defaults().extend([new ol.interaction.DragRotateAndZoom()]),
+        target: "map",
+        interactions: ol.interaction
+          .defaults()
+          .extend([new ol.interaction.DragRotateAndZoom()]),
         layers: this.layers,
         controls: [
           new ol.control.Rotate(),
           new ol.control.FullScreen({
-            tipLabel: "На веcь екран"
+            tipLabel: "На веcь екран",
           }),
           new ol.control.Zoom({
             zoomInTipLabel: "Більше",
-            zoomOutTipLabel: "Меньше"
+            zoomOutTipLabel: "Меньше",
           }),
           new ol.control.ScaleLine(),
         ],
         view: new ol.View({
-          center: ol.proj.transform(center, 'EPSG:4326', 'EPSG:3857'),
-          zoom: zoom
+          center: ol.proj.transform(center, "EPSG:4326", "EPSG:3857"),
+          zoom: zoom,
+          maxZoom: 17,
         }),
       });
 
-      $('.ol-zoom-in, .ol-zoom-out').tooltip({
-        placement: 'right',
-        container: '#map',
+      $(".ol-zoom-in, .ol-zoom-out").tooltip({
+        placement: "right",
+        container: "#map",
       });
-
-      let shouldUpdate = true;
-      const view = map.getView();
       this.updatePermalink = function () {
-        if (!shouldUpdate) {
-          // do not update the URL when the view was changed in the 'popstate' handler
-          shouldUpdate = true;
-          return;
-        }
-
-        const center = ol.proj.transform(view.getCenter(), 'EPSG:3857', 'EPSG:4326');
-        const activeLayer = map.getAllLayers().filter(l=>l.getVisible()).shift().A.displayName;
-        const hash = '#map=' + [activeLayer, view.getZoom().toFixed(2), center[0].toFixed(2), center[1].toFixed(2)].join('/');
+        const activeLayer =
+          this.map
+            .getAllLayers()
+            .filter((l) => l.getVisible())
+            .shift()
+            .get("id") || "";
+        const center = ol.proj.transform(
+          this.map.getView().getCenter(),
+          "EPSG:3857",
+          "EPSG:4326"
+        );
+        const zoom = this.map.getView().getZoom();
         const state = {
-          zoom: view.getZoom(),
-          center: view.getCenter(),
+          zoom,
+          center,
+          activeLayer,
         };
-        window.history.pushState(state, 'map', hash);
+        localStorage.setItem(this.LOCAL_STORAGE_KEY, JSON.stringify(state));
       };
 
-      map.on('moveend', this.updatePermalink);
-
-      // restore the view state when navigating through the history, see
-      // https://developer.mozilla.org/en-US/docs/Web/API/WindowEventHandlers/onpopstate
-      window.addEventListener('popstate', function (event) {
-        if (event.state === null) {
-          return;
-        }
-        map.getView().setCenter(event.state.center);
-        map.getView().setZoom(event.state.zoom);
-        shouldUpdate = false;
-      });
+      map.on("moveend", this.updatePermalink.bind(this));
       this.map = map;
       return this.map;
     }
 
     getProjectionForCK42(coords) {
       if (coords[0] <= 30.01) {
-        return 'EPSG:28405'
+        return "EPSG:28405";
       }
 
       if (coords[0] > 30.01 && coords[0] <= 36.0) {
-        return 'EPSG:28406'
+        return "EPSG:28406";
       }
 
       if (coords[0] > 36.0) {
-        return 'EPSG:28407'
+        return "EPSG:28407";
       }
     }
 
     mapToWgs84(coords) {
       const projection = this.map.getView().getProjection().et;
-      return ol.proj.getTransform(projection, 'EPSG:4326')(coords)
+      return ol.proj.getTransform(projection, "EPSG:4326")(coords);
     }
 
     mapToCK42(coords) {
       const coordsWgs84 = this.mapToWgs84(coords);
       const projectionTo = this.getProjectionForCK42(coordsWgs84);
-      return proj4('EPSG:4326', projectionTo).forward(coordsWgs84);
+      return proj4("EPSG:4326", projectionTo).forward(coordsWgs84);
     }
 
     addControl(elem) {
       this.map.addControl(
         new ol.control.Control({
-          element: elem
+          element: elem,
         })
       );
     }
 
     onMouseMove(callback) {
-      this.map.on('pointermove', callback);
+      this.map.on("pointermove", callback);
     }
 
     onClick(callback) {
-      this.map.on('singleclick', callback);
+      this.map.on("singleclick", callback);
     }
 
     onMoveEnd(callback) {
-      this.map.on('moveend', callback);
+      this.map.on("moveend", callback);
     }
 
     onMoveStart(callback) {
-      this.map.on('movestart', callback);
+      this.map.on("movestart", callback);
     }
 
     setLayer(index) {
-      _.forEach(this.layers, function(layer) { layer.setVisible(false); });
+      _.forEach(this.layers, function (layer) {
+        layer.setVisible(false);
+      });
       this.layers[index].setVisible(true);
       this.updatePermalink();
     }
@@ -151,7 +164,7 @@ $(function() {
     }
 
     pointermove(callback) {
-      this.map.once('pointermove', callback);
+      this.map.once("pointermove", callback);
     }
 
     addInteraction(interaction) {
@@ -166,8 +179,8 @@ $(function() {
       const marker = new ol.Overlay({
         element: el,
         position: coords,
-        positioning: 'center-center',
-        offset: [0,0],
+        positioning: "center-center",
+        offset: [0, 0],
       });
       this.map.addOverlay(marker);
 
@@ -191,13 +204,17 @@ $(function() {
     }
 
     __getLayerDisplayName(layer) {
-      return layer.A.displayName;
+      return layer.get("displayName");
     }
 
     render() {
-      const controlsBar = $('.controls-bar');
+      const controlsBar = $(".controls-bar");
       controlsBar.append(`
-        <div class="ctrl btn-group layers-control" id="change-layer" data-toggle="buttons">
+        <div class="ctrl btn-group layers-control only-local" id="change-layer" data-toggle="buttons">
+        </div>
+        <div class="ctrl btn-group layers-control">
+          <button type="button" id="show-local" class="btn btn-primary btn-sm active">Офлайн</button>
+          <button type="button" id="show-web" class="btn btn-primary btn-sm">Онлайн</button>
         </div>
 
         <div class="ctrl btn-group layers-control">
@@ -234,30 +251,37 @@ $(function() {
 
         <div class="ctrl btn-group marker-color-control" id="change-marker-color" data-toggle="buttons">
         </div>
+        <div class="btn btn-primary btn-sm" id="opengotomodal">ПЕРЕЙТИ ДО</div>
       `);
 
       _.forEach(this.markers.colors, (markerColor, index) => {
-        let checked = '';
+        let checked = "";
         if (markerColor.selected) {
-          checked = 'checked'
+          checked = "checked";
         }
-        $('.marker-color-control#change-marker-color').append(`
+        $(".marker-color-control#change-marker-color").append(`
           <label class="btn btn-primary change-marker-color btn-sm">
             <input type="radio" name="marker-colors" id="${index}" ${checked}> ${markerColor.displayName}
           </label>
-        `)
+        `);
       });
 
       _.forEach(this.mapFront.layers, (layer, index) => {
-        let checked = '';
+        let checked = "";
         if (layer.getVisible()) {
-          checked = 'checked'
+          checked = "checked";
         }
-        $('.layers-control#change-layer').append(`
-          <label class="btn btn-primary change-layer btn-sm">
-            <input type="radio" name="layers" id="${index}" ${checked}> ${this.__getLayerDisplayName(layer)}
+        const buttonClasses = ["btn", "btn-primary", "change-layer", "btn-sm"];
+        buttonClasses.push(
+          layer.get("local") === true ? "layer-local" : "layer-web"
+        );
+        $(".layers-control#change-layer").append(`
+          <label class="${buttonClasses.join(" ")}">
+            <input type="radio" name="layers" id="${index}" ${checked}> ${this.__getLayerDisplayName(
+          layer
+        )}
           </label>
-        `)
+        `);
       });
 
       this.mapFront.addControl(controlsBar[0]);
@@ -268,14 +292,14 @@ $(function() {
       this.measure.setActive(false);
       this.markers.setActive(true);
 
-      $('.measure-control #measure').text('Вимір.');
+      $(".measure-control #measure").text("Вимір.");
     }
 
     setMeasureMode() {
       this.measure.setActive(true);
       this.markers.setActive(false);
 
-      $('.measure-control #measure').text('Маркер.');
+      $(".measure-control #measure").text("Маркер.");
     }
 
     toggleMeasureMarkerMode() {
@@ -289,13 +313,42 @@ $(function() {
     }
 
     addEvents() {
-      $('.layers-control#change-layer label').on('click', this.changeLayer.bind(this));
-      $('.marker-color-control#change-marker-color label').on('click', this.changeMarkerColor.bind(this));
-      $('.ctrl #clear').on('click', this.clearAllMarkers.bind(this));
-      $('.ctrl #show').on('click', this.showAllMarkers.bind(this));
-      $('.ctrl #hide').on('click', this.hideAllMarkers.bind(this));
+      $(".layers-control#change-layer label").on(
+        "click",
+        this.changeLayer.bind(this)
+      );
+      $(".marker-color-control#change-marker-color label").on(
+        "click",
+        this.changeMarkerColor.bind(this)
+      );
+      $(".ctrl #clear").on("click", this.clearAllMarkers.bind(this));
+      $(".ctrl #show").on("click", this.showAllMarkers.bind(this));
+      $(".ctrl #hide").on("click", this.hideAllMarkers.bind(this));
 
-      $('.measure-control #measure').on('click', this.toggleMeasureMarkerMode.bind(this));
+      $(".measure-control #measure").on(
+        "click",
+        this.toggleMeasureMarkerMode.bind(this)
+      );
+
+      $("#show-local").on("click", function () {
+        $(".layers-control#change-layer").removeClass("only-web");
+        $(".layers-control#change-layer").addClass("only-local");
+        $("#show-web").removeClass("active");
+        $("#show-local").addClass("active");
+      });
+      $("#show-web").on("click", function () {
+        $(".layers-control#change-layer").removeClass("only-local");
+        $(".layers-control#change-layer").addClass("only-web");
+        $("#show-local").removeClass("active");
+        $("#show-web").addClass("active");
+      });
+      var gotomodal = new bootstrap.Modal(
+        document.getElementById("gotomodal"),
+        { keyboard: false }
+      );
+      $("#opengotomodal").on("click", function () {
+        gotomodal.show();
+      });
 
       this.mapFront.onMouseMove(this.renderCoords.bind(this));
     }
@@ -319,13 +372,13 @@ $(function() {
 
     changeMarkerColor(event) {
       const elem = $(event.currentTarget);
-      const markerColorIndex = parseInt(elem.find('input').attr('id'))
+      const markerColorIndex = parseInt(elem.find("input").attr("id"));
       this.markers.setColor(markerColorIndex);
     }
 
     changeLayer(event) {
       const elem = $(event.currentTarget);
-      const layerId = parseInt(elem.find('input').attr('id'))
+      const layerId = parseInt(elem.find("input").attr("id"));
       this.mapFront.setLayer(layerId);
     }
 
@@ -340,13 +393,17 @@ $(function() {
     }
 
     renderWgs84(coords) {
-      $('#lon').val(coords[0]);
-      $('#lat').val(coords[1]);
+      $("#lon").val(coords[0]);
+      $("#lat").val(coords[1]);
     }
 
     prepareCK42(coords) {
-      coords = _.map(coords, function(val) { return val.toFixed().substring(2,7) });
-      coords = _.map(coords, function(val) { return val.substring(0,2) + 'кв ' + val.substring(2,5) + 'м' });
+      coords = _.map(coords, function (val) {
+        return val.toFixed().substring(2, 7);
+      });
+      coords = _.map(coords, function (val) {
+        return val.substring(0, 2) + "кв " + val.substring(2, 5) + "м";
+      });
 
       return coords;
     }
@@ -354,19 +411,21 @@ $(function() {
     renderCK42(coords) {
       coords = this.prepareCK42(coords);
 
-      $('#lonArmy').val(coords[0]);
-      $('#latArmy').val(coords[1]);
+      $("#lonArmy").val(coords[0]);
+      $("#latArmy").val(coords[1]);
     }
   }
   class Markers {
-    LOCAL_STORAGE_KEY = 'maps-markers';
+    LOCAL_STORAGE_KEY = "maps-markers";
 
     constructor(mapFront, config) {
       this.markers = [];
 
       this.mapFront = mapFront;
       this.colors = config.markersColors;
-      this.selectedColor = this.colors.find(markerColor => markerColor.selected);
+      this.selectedColor = this.colors.find(
+        (markerColor) => markerColor.selected
+      );
 
       this.addEvents();
       this.render();
@@ -378,11 +437,11 @@ $(function() {
     }
 
     render() {
-      $('body').append(`
+      $("body").append(`
         <div style="display: none;">
           <div id="marker" class="marker" title="Marker"></div>
         </div>
-      `)
+      `);
     }
 
     addEvents() {
@@ -390,47 +449,73 @@ $(function() {
       this.mapFront.onMoveEnd(this.showAllSelectedPopovers.bind(this));
       this.mapFront.onMoveStart(this.hideAllPopovers.bind(this));
 
+      $("body").on(
+        "click",
+        ".popover-header",
+        this.popoverHeaderClick.bind(this)
+      );
+      $("body").on(
+        "click",
+        ".popover-content",
+        this.popoverHeaderClick.bind(this)
+      );
 
-      $('body').on('click', '.popover-header', this.popoverHeaderClick.bind(this));
-      $('body').on('click', '.popover-content', this.popoverHeaderClick.bind(this));
+      $("body").on(
+        "click",
+        ".popover-controls .cancel",
+        ((e) => {
+          const marker = this.getMarkerByPopoverEvent(e);
+          this.setNoneEditMode(marker);
+        }).bind(this)
+      );
 
+      $("body").on(
+        "click",
+        ".popover-controls .save",
+        ((e) => {
+          const marker = this.getMarkerByPopoverEvent(e);
+          this.saveMarkerPopover(marker);
+          this.addPopover(marker, true);
+          this.setNoneEditMode(marker);
+          $(`#marker-${marker.id} .title`).html(marker.title);
+        }).bind(this)
+      );
 
-      $('body').on('click', '.popover-controls .cancel', ((e) => {
-        const marker = this.getMarkerByPopoverEvent(e);
-        this.setNoneEditMode(marker);
-      }).bind(this));
+      $("body").on(
+        "click",
+        ".popover-controls .hide-popover",
+        ((e) => {
+          const marker = this.getMarkerByPopoverEvent(e);
+          this.hidePopover(marker);
+        }).bind(this)
+      );
 
-      $('body').on('click', '.popover-controls .save', ((e) => {
-        const marker = this.getMarkerByPopoverEvent(e);
-        this.saveMarkerPopover(marker);
-        this.addPopover(marker, true);
-        this.setNoneEditMode(marker);
-      }).bind(this));
+      $("body").on(
+        "click",
+        ".popover-controls .remove-marker",
+        ((e) => {
+          const marker = this.getMarkerByPopoverEvent(e);
+          this.removeMarker(marker);
+          this.disposePopover(marker);
+        }).bind(this)
+      );
 
-
-      $('body').on('click', '.popover-controls .hide-popover', ((e) => {
-        const marker = this.getMarkerByPopoverEvent(e);
-        this.hidePopover(marker);
-      }).bind(this));
-
-      $('body').on('click', '.popover-controls .remove-marker', ((e) => {
-        const marker = this.getMarkerByPopoverEvent(e);
-        this.removeMarker(marker);
-        this.disposePopover(marker);
-      }).bind(this));
-
-      $('body').on('click', '.popover-controls .edit-popover', ((e) => {
-        const marker = this.getMarkerByPopoverEvent(e);
-        this.setEditMode(marker);
-      }).bind(this));
+      $("body").on(
+        "click",
+        ".popover-controls .edit-popover",
+        ((e) => {
+          const marker = this.getMarkerByPopoverEvent(e);
+          this.setEditMode(marker);
+        }).bind(this)
+      );
     }
 
     saveMarkerPopover(marker) {
       const popoverContent = $(`#${marker.id}.popover-content`);
-      const popoverEl = popoverContent.parents('.popover');
+      const popoverEl = popoverContent.parents(".popover");
 
-      const title = popoverEl.find('.popover-header input').val();
-      const content = popoverEl.find('.popover-content-top textarea').val();
+      const title = popoverEl.find(".popover-header input").val();
+      const content = popoverEl.find(".popover-content-top textarea").val();
 
       marker.title = title;
       marker.content = content;
@@ -442,31 +527,42 @@ $(function() {
       marker.isEditMode = true;
 
       const popoverContent = $(`#${marker.id}.popover-content`);
-      const popoverEl = popoverContent.parents('.popover');
+      const popoverEl = popoverContent.parents(".popover");
 
-      popoverEl.find('.popover-content-top').html(`<textarea>${marker.content || ''}</textarea>`);
-      popoverEl.find('.popover-header').html(`<input type='text' value='${marker.title || ''}'>`);
+      popoverEl
+        .find(".popover-content-top")
+        .html(`<textarea>${marker.content || ""}</textarea>`);
+      popoverEl
+        .find(".popover-header")
+        .html(`<input type='text' value='${marker.title || ""}'>`);
 
-      popoverEl.find('.edit-mode').show();
-      popoverEl.find('.non-edit-mode').hide();
+      popoverEl.find(".edit-mode").show();
+      popoverEl.find(".non-edit-mode").hide();
     }
 
     setNoneEditMode(marker) {
       marker.isEditMode = false;
 
       const popoverContent = $(`#${marker.id}.popover-content`);
-      const popoverEl = popoverContent.parents('.popover');
+      const popoverEl = popoverContent.parents(".popover");
 
-      popoverEl.find('.popover-content-top').html(`${marker.content || 'Ввeдіть контент'}`);
-      popoverEl.find('.popover-header').html(`${marker.title || 'Ввeдіть тайтл'}`);
+      popoverEl
+        .find(".popover-content-top")
+        .html(`${marker.content || "Введіть опис"}`);
+      popoverEl
+        .find(".popover-header")
+        .html(`${marker.title || "Введіть назву"}`);
 
-      popoverEl.find('.edit-mode').hide();
-      popoverEl.find('.non-edit-mode').show();
+      popoverEl.find(".edit-mode").hide();
+      popoverEl.find(".non-edit-mode").show();
     }
 
     getMarkerByPopoverEvent(e) {
-      const markerId = $(e.currentTarget).parents('.popover').find('.popover-id').attr('id');
-      const marker = _.find(this.markers, marker => marker.id == markerId);
+      const markerId = $(e.currentTarget)
+        .parents(".popover")
+        .find(".popover-id")
+        .attr("id");
+      const marker = _.find(this.markers, (marker) => marker.id == markerId);
 
       return marker;
     }
@@ -517,26 +613,29 @@ $(function() {
       this.createMarker({ coords, colorId: this.selectedColor.id });
     }
 
-    showMarker(coords, colorId) {
-      const jEl = $('#marker').clone().removeAttr('id');
+    showMarker(id, options) {
+      const jEl = $("#marker").clone().removeAttr("id");
       let color = this.selectedColor;
 
-      if (colorId) {
-        color = _.find(this.colors, c => c.id == colorId);
+      if (options.colorId) {
+        color = _.find(this.colors, (c) => c.id == options.colorId);
       }
 
       jEl.addClass(color.colorClass);
+      jEl.html(`<span class='title'>${options.title || ""}</span>`);
+      jEl.attr("id", `marker-${id}`);
 
       const el = jEl[0];
-      const markerMap = this.mapFront.createMarker(el, coords);
+      const markerMap = this.mapFront.createMarker(el, options.coords);
 
       return markerMap;
     }
 
     createMarker(options, isSaved) {
-      const markerMap = this.showMarker(options.coords, options.colorId);
+      const id = uuid.v4();
+      const markerMap = this.showMarker(id, options);
       const marker = {
-        id: uuid.v4(),
+        id: id,
         coords: options.coords,
         colorId: options.colorId,
         title: options.title,
@@ -553,8 +652,12 @@ $(function() {
     }
 
     prepareCK42(coords) {
-      coords = _.map(coords, function(val) { return val.toFixed().substring(2,7) });
-      coords = _.map(coords, function(val) { return val.substring(0,2) + 'кв ' + val.substring(2,5) + 'м' });
+      coords = _.map(coords, function (val) {
+        return val.toFixed().substring(2, 7);
+      });
+      coords = _.map(coords, function (val) {
+        return val.substring(0, 2) + "кв " + val.substring(2, 5) + "м";
+      });
 
       return coords;
     }
@@ -569,13 +672,15 @@ $(function() {
       const content = `
         <div id='${marker.id}' class='popover-id popover-content'>
           <div class='popover-content-top'>
-            ${marker.content || 'Ввeдіть контент'}
+            ${marker.content || "Введіть опис"}
           </div>
           <div class='popover-content-bottom'>
             <hr>
             <b> ${coordsCK42[1]} : ${coordsCK42[0]}  </b>
             <br/>
-            <b> ${coordsWgs84[1].toString().substring(0, 8)} : ${coordsWgs84[0].toString().substring(0, 8)} </b>
+            <b> ${coordsWgs84[1].toString().substring(0, 8)} : ${coordsWgs84[0]
+        .toString()
+        .substring(0, 8)} </b>
             <br/>
           </div>
 
@@ -596,11 +701,11 @@ $(function() {
       this.disposePopover(marker);
 
       $(markerMapElement).popover({
-        container: '#map',
-        placement: 'auto',
+        container: "#map",
+        placement: "auto",
         animation: false,
         html: true,
-        trigger: 'manual',
+        trigger: "manual",
         content: content,
       });
 
@@ -608,37 +713,43 @@ $(function() {
         this.showPopover(marker);
       }
 
-      $(markerMapElement).attr('data-bs-original-title', marker.title || 'Ввeдіть тайтл');
-      $(markerMapElement).on('click', (function(e) {
-        this.showPopover(marker);
-      }).bind(this));
+      $(markerMapElement).attr(
+        "data-bs-original-title",
+        marker.title || "Введіть назву"
+      );
+      $(markerMapElement).on(
+        "click",
+        function (e) {
+          this.showPopover(marker);
+        }.bind(this)
+      );
     }
 
     showPopover(marker) {
-      $(marker.markerMap.getElement()).popover('show');
+      $(marker.markerMap.getElement()).popover("show");
       marker.isPopoverShowed = true;
     }
 
     disposePopover(marker) {
-      $(marker.markerMap.getElement()).popover('dispose');
+      $(marker.markerMap.getElement()).popover("dispose");
       marker.isPopoverShowed = false;
     }
 
     hidePopover(marker, changeState = true) {
-      $(marker.markerMap.getElement()).popover('hide');
+      $(marker.markerMap.getElement()).popover("hide");
       if (changeState) {
         marker.isPopoverShowed = false;
       }
     }
 
     updatePopover(marker) {
-      $(marker.markerMap.getElement()).popover('update');
+      $(marker.markerMap.getElement()).popover("update");
     }
 
     removeMarker(marker) {
       this.mapFront.removeMarker(marker.markerMap);
 
-      _.remove(this.markers, m => m === marker);
+      _.remove(this.markers, (m) => m === marker);
 
       this.saveToLocalStorage();
     }
@@ -651,9 +762,12 @@ $(function() {
           colorId: marker.colorId,
           title: marker.title,
           content: marker.content,
-        }
+        };
       });
-      localStorage.setItem(this.LOCAL_STORAGE_KEY, JSON.stringify(markersForSave));
+      localStorage.setItem(
+        this.LOCAL_STORAGE_KEY,
+        JSON.stringify(markersForSave)
+      );
     }
 
     getFromLocalStorage() {
@@ -675,7 +789,7 @@ $(function() {
     }
 
     setColor(index) {
-      _.forEach(this.colors, color => color.selected = false);
+      _.forEach(this.colors, (color) => (color.selected = false));
       this.colors[index].selected = true;
       this.selectedColor = this.colors[index];
     }
@@ -692,7 +806,10 @@ $(function() {
       this.initStyles();
 
       this.source = new ol.source.Vector();
-      this.modify = new ol.interaction.Modify({source: this.source, style: this.modifyStyle});
+      this.modify = new ol.interaction.Modify({
+        source: this.source,
+        style: this.modifyStyle,
+      });
 
       this.initMap();
       this.addInteraction();
@@ -713,35 +830,35 @@ $(function() {
     initStyles() {
       this.style = new ol.style.Style({
         fill: new ol.style.Fill({
-          color: 'rgba(255, 255, 255, 0.2)',
+          color: "rgba(255, 255, 255, 0.2)",
         }),
         stroke: new ol.style.Stroke({
-          color: 'rgba(0, 0, 0, 0.5)',
+          color: "rgba(0, 0, 0, 0.5)",
           lineDash: [10, 10],
           width: 2,
         }),
         image: new ol.style.Circle({
           radius: 5,
           stroke: new ol.style.Stroke({
-            color: 'rgba(0, 0, 0, 0.7)',
+            color: "rgba(0, 0, 0, 0.7)",
           }),
           fill: new ol.style.Fill({
-            color: 'rgba(255, 255, 255, 0.2)',
+            color: "rgba(255, 255, 255, 0.2)",
           }),
         }),
       });
 
       this.labelStyle = new ol.style.Style({
         text: new ol.style.Text({
-          font: '14px Calibri,sans-serif',
+          font: "14px Calibri,sans-serif",
           fill: new ol.style.Fill({
-            color: 'rgba(255, 255, 255, 1)',
+            color: "rgba(255, 255, 255, 1)",
           }),
           backgroundFill: new ol.style.Fill({
-            color: 'rgba(0, 0, 0, 0.7)',
+            color: "rgba(0, 0, 0, 0.7)",
           }),
           padding: [3, 3, 3, 3],
-          textBaseline: 'bottom',
+          textBaseline: "bottom",
           offsetY: -15,
         }),
         image: new ol.style.RegularShape({
@@ -750,22 +867,22 @@ $(function() {
           angle: Math.PI,
           displacement: [0, 10],
           fill: new ol.style.Fill({
-            color: 'rgba(0, 0, 0, 0.7)',
+            color: "rgba(0, 0, 0, 0.7)",
           }),
         }),
       });
 
       this.tipStyle = new ol.style.Style({
         text: new ol.style.Text({
-          font: '12px Calibri,sans-serif',
+          font: "12px Calibri,sans-serif",
           fill: new ol.style.Fill({
-            color: 'rgba(255, 255, 255, 1)',
+            color: "rgba(255, 255, 255, 1)",
           }),
           backgroundFill: new ol.style.Fill({
-            color: 'rgba(0, 0, 0, 0.4)',
+            color: "rgba(0, 0, 0, 0.4)",
           }),
           padding: [2, 2, 2, 2],
-          textAlign: 'left',
+          textAlign: "left",
           offsetX: 15,
         }),
       });
@@ -774,38 +891,38 @@ $(function() {
         image: new ol.style.Circle({
           radius: 5,
           stroke: new ol.style.Stroke({
-            color: 'rgba(0, 0, 0, 0.7)',
+            color: "rgba(0, 0, 0, 0.7)",
           }),
           fill: new ol.style.Fill({
-            color: 'rgba(0, 0, 0, 0.4)',
+            color: "rgba(0, 0, 0, 0.4)",
           }),
         }),
         text: new ol.style.Text({
-          text: 'Перетягніть для зміни',
-          font: '12px Calibri,sans-serif',
+          text: "Перетягніть для зміни",
+          font: "12px Calibri,sans-serif",
           fill: new ol.style.Fill({
-            color: 'rgba(255, 255, 255, 1)',
+            color: "rgba(255, 255, 255, 1)",
           }),
           backgroundFill: new ol.style.Fill({
-            color: 'rgba(0, 0, 0, 0.7)',
+            color: "rgba(0, 0, 0, 0.7)",
           }),
           padding: [2, 2, 2, 2],
-          textAlign: 'left',
+          textAlign: "left",
           offsetX: 15,
         }),
       });
 
       this.segmentStyle = new ol.style.Style({
         text: new ol.style.Text({
-          font: '12px Calibri,sans-serif',
+          font: "12px Calibri,sans-serif",
           fill: new ol.style.Fill({
-            color: 'rgba(255, 255, 255, 1)',
+            color: "rgba(255, 255, 255, 1)",
           }),
           backgroundFill: new ol.style.Fill({
-            color: 'rgba(0, 0, 0, 0.4)',
+            color: "rgba(0, 0, 0, 0.4)",
           }),
           padding: [2, 2, 2, 2],
-          textBaseline: 'bottom',
+          textBaseline: "bottom",
           offsetY: -12,
         }),
         image: new ol.style.RegularShape({
@@ -814,7 +931,7 @@ $(function() {
           angle: Math.PI,
           displacement: [0, 8],
           fill: new ol.style.Fill({
-            color: 'rgba(0, 0, 0, 0.4)',
+            color: "rgba(0, 0, 0, 0.4)",
           }),
         }),
       });
@@ -826,13 +943,12 @@ $(function() {
       const length = ol.sphere.getLength(line);
       let output;
       if (length > 100) {
-        output = Math.round((length / 1000) * 100) / 100 + ' km';
+        output = Math.round((length / 1000) * 100) / 100 + " km";
       } else {
-        output = Math.round(length * 100) / 100 + ' m';
+        output = Math.round(length * 100) / 100 + " m";
       }
       return output;
     }
-
 
     styleFunction(feature, segments, drawType, tip) {
       const styles = [this.style];
@@ -866,7 +982,7 @@ $(function() {
       }
       if (
         tip &&
-        type === 'Point' &&
+        type === "Point" &&
         !this.modify.getOverlay().getSource().getFeatures().length
       ) {
         this.tipPoint = geometry;
@@ -877,9 +993,9 @@ $(function() {
     }
 
     addInteraction() {
-      const drawType = 'LineString';
-      this.activeTip = 'Клікніть для продовження лінії';
-      this.idleTip = 'Клікніть для початку вимірювання';
+      const drawType = "LineString";
+      this.activeTip = "Клікніть для продовження лінії";
+      this.idleTip = "Клікніть для початку вимірювання";
       this.tip = this.idleTip;
 
       const self = this;
@@ -887,12 +1003,17 @@ $(function() {
         source: this.source,
         type: drawType,
         style: function (feature) {
-          return self.styleFunction(feature, self.showSegments, drawType, self.tip);
+          return self.styleFunction(
+            feature,
+            self.showSegments,
+            drawType,
+            self.tip
+          );
         },
       });
 
-      this.draw.on('drawstart', this.drawstart.bind(this));
-      this.draw.on('drawend', this.drawend.bind(this));
+      this.draw.on("drawstart", this.drawstart.bind(this));
+      this.draw.on("drawend", this.drawend.bind(this));
 
       this.modify.setActive(true);
       this.mapFront.addInteraction(this.draw);
@@ -938,5 +1059,4 @@ $(function() {
   const measure = new MeasureVector(mapFront);
 
   new MapControls(mapFront, markers, measure, config);
-
 });
