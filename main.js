@@ -7,13 +7,16 @@ const logger = require("electron-log");
 
 const findCopernicusMapsFolderPath = (current) => {
   const dirPath = path.join(current, "/", global.COPERNICUS_MAPS_DIRNAME);
+  logger.info(current);
   if (fs.existsSync(dirPath) && fs.lstatSync(dirPath).isDirectory()) {
-    logger.info(dirPath);
     return dirPath;
-  } else if (current.length) {
+  } else if (current.length && current !== "/") {
     return findCopernicusMapsFolderPath(path.join(current, ".."));
   }
-  electron.dialog.showErrorBox("Error", `"${aa}" папку не знайдено у директоріях вище за ту де запускається програма.`);
+  electron.dialog.showErrorBox(
+    "Error",
+    `"${global.COPERNICUS_MAPS_DIRNAME}" папку не знайдено у директоріях вище за ту де запускається програма.`
+  );
   throw new Error("no maps found");
 }
 
