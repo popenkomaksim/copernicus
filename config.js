@@ -5,7 +5,7 @@ const config = {
   layers: [
     {
       local: true,
-      id: "OSM-LOCAL",
+      id: "OSM-OFFLINE",
       projection: "EPSG:3857",
       source: new ol.source.XYZ({
         tileLoadFunction: async (imageTile, link) => {
@@ -33,7 +33,7 @@ const config = {
     },
     {
       local: true,
-      id: "COSM-LOCAL",
+      id: "COSM-OFFLINE",
       projection: "EPSG:3857",
       source: new ol.source.XYZ({
         tileLoadFunction: async (imageTile, link) => {
@@ -56,7 +56,7 @@ const config = {
     },
     {
       local: true,
-      id: "GS-LOCAL",
+      id: "GOOGLE-OFFLINE",
       projection: "EPSG:3857",
       source: new ol.source.XYZ({
         tileLoadFunction: async (imageTile, link) => {
@@ -79,7 +79,7 @@ const config = {
     },
     {
       local: true,
-      id: "HERE-LOCAL",
+      id: "HERE-OFFLINE",
       projection: "EPSG:3857",
       source: new ol.source.XYZ({
         tileLoadFunction: async (imageTile, link) => {
@@ -101,6 +101,7 @@ const config = {
       visible: false,
     },
     {
+      id: "OSM-ONLINE",
       projection: "EPSG:3857",
       source: new ol.source.OSM({
         url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -110,6 +111,7 @@ const config = {
       visible: false,
     },
     {
+      id: "COSM-ONLINE",
       projection: "EPSG:3857",
       source: new ol.source.OSM({
         url: "https://b.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png",
@@ -119,6 +121,7 @@ const config = {
       visible: false,
     },
     {
+      id: "GOOGLE-ONLINE",
       projection: "EPSG:3857",
       source: new ol.source.OSM({
         url: "https://khms0.googleapis.com/kh?v=917&hl=en-US&x={x}&y={y}&z={z}",
@@ -128,6 +131,7 @@ const config = {
       visible: false,
     },
     {
+      id: "HERE-ONLINE",
       projection: "EPSG:3857",
       source: new ol.source.OSM({
         url: "https://3.aerial.maps.ls.hereapi.com/maptile/2.1/maptile/newest/satellite.day/{z}/{x}/{y}/256/png8?apiKey=t_kKKAHgEZ-SCa-v08N8xCchEK_wxxp7dFAmEOpi9hs",
