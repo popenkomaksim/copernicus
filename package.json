@@ -1,7 +1,7 @@
 {
   "name": "copernicus",
   "version": "1.0.0",
-  "productName": "Карти",
+  "productName": "Copernicus",
   "description": "",
   "main": "main.js",
   "scripts": {
