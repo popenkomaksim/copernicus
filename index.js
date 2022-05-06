@@ -45,7 +45,10 @@ $(function () {
           .get("id") !== activeLayer
       ) {
         for (let i = 0; i < this.layers.length; i++) {
-          this.layers[i].setVisible(this.layers[i].get("id") === activeLayer);
+          this.layers[i].setVisible(
+            this.layers[i].get("id") === activeLayer ||
+              this.layers[i].get("always_visible")
+          );
         }
       }
       const map = new ol.Map({
@@ -57,7 +60,7 @@ $(function () {
         controls: [
           new ol.control.Rotate(),
           new ol.control.FullScreen({
-            tipLabel: "На веcь екран",
+            tipLabel: "На весь екран",
           }),
           new ol.control.Zoom({
             zoomInTipLabel: "Більше",
@@ -127,6 +130,37 @@ $(function () {
       return proj4("EPSG:4326", projectionTo).forward(coordsWgs84);
     }
 
+    getProjectionFromCK42(coords) {
+      if (coords[0] <= 5617947.25) {
+        return "EPSG:28405";
+      }
+
+      if (coords[0] > 6260792.68 && coords[0] <= 6614538.36) {
+        return "EPSG:28406";
+      }
+
+      if (coords[0] > 7249337.68) {
+        return "EPSG:28407";
+      }
+    }
+
+    ck42toWgs84(coords) {
+      const projection = this.getProjectionFromCK42(coords);
+      const coordsWgs84 = proj4(projection, "EPSG:4326").forward(coords);
+      return coordsWgs84;
+    }
+
+    goto(coords) {
+      const size = this.map.getSize();
+      this.map
+        .getView()
+        .centerOn(
+          ol.proj.transform(coords, "EPSG:4326", "EPSG:3857"),
+          size,
+          [570, 500]
+        );
+    }
+
     addControl(elem) {
       this.map.addControl(
         new ol.control.Control({
@@ -153,7 +187,7 @@ $(function () {
 
     setLayer(index) {
       _.forEach(this.layers, function (layer) {
-        layer.setVisible(false);
+        layer.setVisible(layer.get("always_visible"));
       });
       this.layers[index].setVisible(true);
       this.updatePermalink();
@@ -217,21 +251,15 @@ $(function () {
           <button type="button" id="show-web" class="btn btn-primary btn-sm">Онлайн</button>
         </div>
 
-        <div class="ctrl btn-group layers-control">
-          <button type="button" id="show" class="btn btn-primary btn-sm">Показати</button>
-          <button type="button" id="hide" class="btn btn-primary btn-sm">Приховати</button>
-          <button type="button" id="clear" class="btn btn-primary btn-sm">Видалити</button>
-        </div>
-
         <div>
           <div class="input-group input-group-sm mb-3 positions sk-42">
             <span class="input-group-text">CK42 lat</span>
-            <input type="text" class="form-control" id="latArmy" placeholder="0кв 0м">
+            <input type="text" class="form-control" id="latArmy" placeholder="00-00000">
           </div>
 
           <div class="input-group input-group-sm mb-3 positions sk-42">
             <span class="input-group-text">CK42 lon</span>
-            <input type="text" class="form-control" id="lonArmy" placeholder="0кв 0м">
+            <input type="text" class="form-control" id="lonArmy" placeholder="00-00000">
           </div>
 
           <div class="input-group input-group-sm mb-3 positions">
@@ -245,13 +273,19 @@ $(function () {
           </div>
         </div>
 
+        <div class="ctrl btn-group layers-control">
+          <button type="button" id="show" class="btn btn-primary btn-sm">Пок.</button>
+          <button type="button" id="hide" class="btn btn-primary btn-sm">Прихов.</button>
+          <button type="button" id="clear" class="btn btn-primary btn-sm">Вид.</button>
+          <button type="button" id="opengotomodal" class="btn btn-primary btn-sm">Перейти до</button>
+        </div>
+
         <div class="ctrl btn-group measure-control">
           <button type="button" id="measure" class="btn btn-primary btn-sm">Вимір.</button>
         </div>
 
         <div class="ctrl btn-group marker-color-control" id="change-marker-color" data-toggle="buttons">
         </div>
-        <div class="btn btn-primary btn-sm" id="opengotomodal">ПЕРЕЙТИ ДО</div>
       `);
 
       _.forEach(this.markers.colors, (markerColor, index) => {
@@ -292,6 +326,7 @@ $(function () {
       this.measure.setActive(false);
       this.markers.setActive(true);
 
+      $(".marker-color-control").show();
       $(".measure-control #measure").text("Вимір.");
     }
 
@@ -299,6 +334,7 @@ $(function () {
       this.measure.setActive(true);
       this.markers.setActive(false);
 
+      $(".marker-color-control").hide();
       $(".measure-control #measure").text("Маркер.");
     }
 
@@ -310,6 +346,23 @@ $(function () {
       } else {
         this.setMarkerMode();
       }
+    }
+
+    jump(e) {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target).entries());
+      const type = data["coord_type"].trim();
+      let lat = data["goto_lat"].trim();
+      let lon = data["goto_lon"].trim();
+      let coords = [];
+      if (type === "wgs84") {
+        coords = [parseFloat(lon), parseFloat(lat)];
+      } else if (type === "ck42") {
+        lat = parseFloat(lat.replace("-", ".")) * 100000;
+        lon = parseFloat(lon.replace("-", ".")) * 100000;
+        coords = this.mapFront.ck42toWgs84([lon, lat]);
+      }
+      this.mapFront.goto(coords);
     }
 
     addEvents() {
@@ -342,11 +395,26 @@ $(function () {
         $("#show-local").removeClass("active");
         $("#show-web").addClass("active");
       });
+
+      $("#gotomodal form").on("submit", this.jump.bind(this));
       var gotomodal = new bootstrap.Modal(
         document.getElementById("gotomodal"),
         { keyboard: false }
       );
+
+      $("#coords_ck42").on("click", function () {
+        $("#goto_lat").inputmask("99-99999");
+        $("#goto_lon").inputmask("99-99999");
+      });
+      $("#coords_wgs84").on("click", function () {
+        $("#goto_lat").inputmask("99.999999");
+        $("#goto_lon").inputmask("99.999999");
+      });
+
       $("#opengotomodal").on("click", function () {
+        $("#goto_lat").inputmask("99-99999");
+        $("#goto_lon").inputmask("99-99999");
+
         gotomodal.show();
       });
 
@@ -393,18 +461,26 @@ $(function () {
     }
 
     renderWgs84(coords) {
+      coords = this.prepareWgs84(coords);
+
       $("#lon").val(coords[0]);
       $("#lat").val(coords[1]);
     }
 
+    prepareWgs84(coords) {
+      coords = _.map(coords, function (val) {
+        return val.toFixed(6);
+      });
+      return coords;
+    }
+
     prepareCK42(coords) {
       coords = _.map(coords, function (val) {
-        return val.toFixed().substring(2, 7);
+        return val.toFixed();
       });
       coords = _.map(coords, function (val) {
-        return val.substring(0, 2) + "кв " + val.substring(2, 5) + "м";
+        return val.substring(0, 2) + "-" + val.substring(2, 7);
       });
-
       return coords;
     }
 
@@ -653,21 +729,29 @@ $(function () {
 
     prepareCK42(coords) {
       coords = _.map(coords, function (val) {
-        return val.toFixed().substring(2, 7);
+        return val.toFixed();
       });
       coords = _.map(coords, function (val) {
-        return val.substring(0, 2) + "кв " + val.substring(2, 5) + "м";
+        return val.substring(0, 2) + "-" + val.substring(2, 7);
       });
 
+      return coords;
+    }
+
+    prepareWgs84(coords) {
+      coords = _.map(coords, function (val) {
+        return val.toFixed(6);
+      });
       return coords;
     }
 
     addPopover(marker, isShowImmediately) {
       const markerMapElement = marker.markerMap.getElement();
 
-      const coordsWgs84 = this.mapFront.mapToWgs84(marker.coords);
+      let coordsWgs84 = this.mapFront.mapToWgs84(marker.coords);
       let coordsCK42 = this.mapFront.mapToCK42(marker.coords);
       coordsCK42 = this.prepareCK42(coordsCK42);
+      coordsWgs84 = this.prepareWgs84(coordsWgs84);
 
       const content = `
         <div id='${marker.id}' class='popover-id popover-content'>
@@ -678,9 +762,7 @@ $(function () {
             <hr>
             <b> ${coordsCK42[1]} : ${coordsCK42[0]}  </b>
             <br/>
-            <b> ${coordsWgs84[1].toString().substring(0, 8)} : ${coordsWgs84[0]
-        .toString()
-        .substring(0, 8)} </b>
+            <b> ${coordsWgs84[1]} : ${coordsWgs84[0]} </b>
             <br/>
           </div>
 
@@ -830,12 +912,12 @@ $(function () {
     initStyles() {
       this.style = new ol.style.Style({
         fill: new ol.style.Fill({
-          color: "rgba(255, 255, 255, 0.2)",
+          color: "rgba(0, 0, 0, 1)",
         }),
         stroke: new ol.style.Stroke({
-          color: "rgba(0, 0, 0, 0.5)",
+          color: "#ffcc33",
           lineDash: [10, 10],
-          width: 2,
+          width: 3,
         }),
         image: new ol.style.Circle({
           radius: 5,
@@ -989,6 +1071,7 @@ $(function () {
         this.tipStyle.getText().setText(tip);
         styles.push(this.tipStyle);
       }
+
       return styles;
     }
 

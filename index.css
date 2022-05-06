@@ -28,6 +28,10 @@
     margin-right: 35px;
 }
 
+.controls-bar input {
+    font-weight:bold;
+}
+
 .ctrl {
     float: left;
     margin-left: 5px;
